@@ -1,15 +1,19 @@
 import sys
 import cv2
 import numpy as np
+# from pandas import writer
 from loadModel import Classifier
 from time import time
-import facenet
+from csv import *
+
+
 from PIL import Image
 import align.detect_face
 import tensorflow as tf
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
+import os
 from matplotlib.figure import Figure
 from PIL import Image
 ############################
@@ -45,8 +49,7 @@ with sess.as_default():
 
 classifier = Classifier()
 classifier.load_model()
-
-
+_translate = QtCore.QCoreApplication.translate
 class MainWindown(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -67,6 +70,7 @@ class MainWindown(QMainWindow):
         # self.time=time()
         self.thread[1].signal1.connect(self.show_wedcam)
         self.thread[1].signal2.connect(self.show_gh)
+        self.thread[1].signal3.connect(self.show_Flas)
 
     def stop_capture_video(self):
         self.thread[1].stop()
@@ -76,6 +80,13 @@ class MainWindown(QMainWindow):
         qt_img_graph = self.convert_cv_qt_gh(frame)
         self.uic.label.setPixmap(qt_img)
         self.uic.label_2.setPixmap(qt_img_graph)
+    def show_Flas(self, flag):
+        if flag == 'Bình thường':
+            self.uic.label_4.setText(_translate("MainWindow", "Bình thường"))
+        elif flag == 'Căng thẳng':
+            self.uic.label_4.setText(_translate("MainWindow", "Căng thẳng"))
+        elif flag == 'Có khả năng căng thẳng':
+            self.uic.label_4.setText(_translate("MainWindow", "Có khả năng căng thẳng"))
     def show_gh(self, frame):
         qt_img_graph = self.convert_cv_qt_gh(frame)
         self.uic.label_2.setPixmap(qt_img_graph)
@@ -99,6 +110,7 @@ class MainWindown(QMainWindow):
 class live_stream(QThread):
     signal1 = pyqtSignal(np.ndarray)
     signal2 = pyqtSignal(np.ndarray)
+    signal3 = pyqtSignal(str)
     def __init__(self, index):
         self.index = index
         print("start threading", self.index)
@@ -106,8 +118,12 @@ class live_stream(QThread):
         self.countNegative = 0
         self.countPositive = 0
         self.time = 0
+        self.flag = None
+        self.img_graph = None
+        self.timeCount = 0
 
     def run(self):
+
         self.time = time()
         self.run_programer()
 
@@ -118,13 +134,15 @@ class live_stream(QThread):
         bounding_boxes, _ = align.detect_face.detect_face(frame, MINSIZE, pnet, rnet, onet, THRESHOLD, FACTOR)
         faces_found = bounding_boxes.shape[0]
         try:
-            if faces_found > 1:
-                cv2.putText(frame, "Only one face", (0, 100), cv2.FONT_HERSHEY_COMPLEX_SMALL,
-                            1, (255, 255, 255), thickness=1, lineType=2)
-            elif faces_found > 0:
+            # if faces_found > 1:
+            #     cv2.putText(frame, "Only one face", (0, 100), cv2.FONT_HERSHEY_COMPLEX_SMALL,
+            #                 1, (255, 255, 255), thickness=1, lineType=2)
+            # elif faces_found > 0:
+            #     det = bounding_boxes[:, 0:4]
+            #     bb = np.zeros((faces_found, 4), dtype=np.int32)
+            if faces_found > 0:
                 det = bounding_boxes[:, 0:4]
                 bb = np.zeros((faces_found, 4), dtype=np.int32)
-
         except:
             pass
         return bb, det, faces_found
@@ -136,10 +154,11 @@ class live_stream(QThread):
     def run_programer(self):
         vd = self.get_camera_stream()
         total_fps = 0
-        frame_count = 1
+        frame_count = 0
         arrNegative = []
         arrPositive = []
         timeCount = []
+        vlue = True
         while True:
             start_time = time()
             ret, frame = vd.read()
@@ -158,69 +177,99 @@ class live_stream(QThread):
                         cropped = frame[bb[i][1]:bb[i][3], bb[i][0]:bb[i][2], :]
                         scaled = cv2.resize(cropped, (INPUT_IMAGE_SIZE, INPUT_IMAGE_SIZE),
                                             interpolation=cv2.INTER_CUBIC)
-                        frame_count = frame_count + 1
-                        timeCount.append(frame_count)
-
-                        print(len(arrNegative))
-                        print(len(arrPositive))
+                        # frame_count += 0.1
+                        if vlue:
+                            self.timeCount = time()
+                            vlue = False
+                        timeNow = time() - self.timeCount
+                        timeCount.append(timeNow)
+                        # 2m * 60s = 120s     =>    20% Negative   80% Positive
 
                         # convert scaled to image
                         scaled = cv2.cvtColor(scaled, cv2.COLOR_BGR2RGB)
                         name = classifier.predict(scaled)
-                        print(name)
+                        # print(name)
                         # self.signal.emit(frame)
                         color = (255, 255, 255)
                         if name == "Angry" or name == "Disgust" or name == "Fear" or name == "Sad":
                             color = (0, 0, 255)
-                            self.countNegative += 1
+                            self.countNegative += 0.1
                             arrNegative.append(self.countNegative)
                             arrPositive.append(self.countPositive)
-                        else:
-                            self.countPositive += 1
+                            List = [f'{timeNow}', f'{self.countPositive}', f'{self.countNegative}']
+                            with open(r'.\Data\dataEmotion.csv', 'a') as f_object:
+                                writer_object = writer(f_object)
+                                writer_object.writerow(List)
+                                f_object.close()
+                        elif name == "Happy" or name == "Surprise":
+                            self.countPositive += 0.1
                             arrPositive.append(self.countPositive)
                             arrNegative.append(self.countNegative)
                             color = (255, 0, 0)
-                        print(len(timeCount))
+                            List = [f'{timeNow}', f'{self.countPositive}', f'{self.countNegative}']
+                            with open(r'.\Data\dataEmotion.csv', 'a') as f_object:
+                                writer_object = writer(f_object)
+                                writer_object.writerow(List)
+                                f_object.close()
+                        else:
+                            arrPositive.append(self.countPositive)
+                            arrNegative.append(self.countNegative)
+                            color = (0, 255, 0)
+                        if self.countNegative > self.countPositive:
+                            self.flag = False
+                        else:
+                            self.flag = True
                         # put name
-
                         cv2.putText(frame, name, (bb[i][0], bb[i][1] - 10), cv2.FONT_HERSHEY_COMPLEX_SMALL,
                                     1, color, thickness=1, lineType=2)
                         cv2.rectangle(frame, (bb[i][0], bb[i][1]), (bb[i][2], bb[i][3]), color, 2)
                         fig = Figure(figsize=(5, 4), dpi=100)
                         canvas = FigureCanvasAgg(fig)
                         ax = fig.add_subplot(111)
-                        ax.plot(timeCount, arrPositive, color='red', label = 'x')
-                        ax.plot(timeCount, arrNegative, color='green', label ='y')
+                        ax.plot(timeCount, arrPositive)
+                        ax.plot(timeCount, arrNegative)
                         canvas.draw()
                         buf = canvas.buffer_rgba()
-                        img = Image.frombuffer('RGBA', canvas.get_width_height(), buf, 'raw', 'RGBA', 0, 1)
+                        # img = Image.frombuffer('RGBA', canvas.get_width_height(), buf, 'raw', 'RGBA', 0, 1)
                         X = np.asarray(buf)
-                        img = cv2.cvtColor(X, cv2.COLOR_RGBA2BGR)
+                        self.img_graph = cv2.cvtColor(X, cv2.COLOR_RGBA2BGR)
+
+
                 end_time = time()
                 timerun = end_time - self.time
                 print('time', timerun)
-                if timerun > 120:
-                    if self.countNegative > self.countPositive:
-                        print("Negative")
-                        print("Negative", self.countNegative)
-                        print("Positive", self.countPositive)
+                if timerun > 10:
+                    frame_count = self.countPositive + self.countNegative
+                    if self.countPositive > ((frame_count/100)*20):
+                        self.flag = 'Bình thường'
+                        print('Bình thường')
+                    elif self.countNegative == frame_count:
+                        self.flag = 'Căng thẳng'
+                        print('Cang thang')
                     else:
-                        print("Positive")
-                        print("Negative", self.countNegative)
-                        print("Positive", self.countPositive)
+                        self.flag = 'Có khả năng căng thẳng'
+                        print('Có khả năng Cang thanh')
+                    print("countPositive", self.countPositive)
+                    print("countNegative", self.countNegative)
+                    print("frame_count", frame_count)
+                # if timerun > 300:
                     # self.countNegative = 0
                     # self.countPositive = 0
-                    self.time = time()
+
                 fps = 1 / (end_time - start_time)
                 total_fps += fps
                 print(f"Frame Per Second: {round(fps, 1)}FPS")
                 self.signal1.emit(frame)
-                self.signal2.emit(img)
+                self.signal2.emit(self.img_graph)
+                self.signal3.emit(self.flag)
             except:
                 pass
 
     def stop(self):
         print("stop threading", self.index)
+        directory = "E:\AppEmotionInterface\Image"
+        os.chdir(directory)
+        cv2.imwrite("test.jpg", self.img_graph)
         self.terminate()
 
 

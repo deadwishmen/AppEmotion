@@ -140,7 +140,7 @@ class Classifier:
                 with session.graph.as_default():
                     # image = image.resize([96, 96])
                     np_image = np.array(image)
-                    batch_images = np.array([np_image])
+                    batch_images = np.array([np_image]) # (1, 96, 96 ,3)
                     y_prob_batch = self.model.predict(batch_images)
                     y_pred_batch = np.argmax(y_prob_batch, axis=1)
                     y_predict = y_pred_batch[0]

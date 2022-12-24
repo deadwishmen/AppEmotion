@@ -48,6 +48,18 @@ class Ui_MainWindow(object):
         self.label_2.setFrameShape(QtWidgets.QFrame.Panel)
         self.label_2.setText("")
         self.label_2.setObjectName("label_2")
+        self.label_4 = QtWidgets.QLabel(self.centralwidget)
+        self.label_4.setGeometry(QtCore.QRect(920, 400, 341, 61))
+        font = QtGui.QFont()
+        font.setPointSize(14)
+        font.setBold(True)
+        font.setWeight(75)
+        self.label_4.setFont(font)
+        self.label_4.setScaledContents(False)
+        self.label_4.setAlignment(QtCore.Qt.AlignCenter)
+        self.label_4.setWordWrap(False)
+        self.label_4.setOpenExternalLinks(False)
+        self.label_4.setObjectName("label_4")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 1279, 27))
@@ -65,6 +77,7 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.ButtonStart.setText(_translate("MainWindow", "Start"))
         self.ButtonStop.setText(_translate("MainWindow", "Stop"))
+        self.label_4.setText(_translate("MainWindow", "Bình thường"))
 
 
 if __name__ == "__main__":
