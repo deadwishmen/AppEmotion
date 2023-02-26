@@ -237,28 +237,28 @@ class live_stream(QThread):
 
                 end_time = time()
                 timerun = end_time - self.time
-                print('time', timerun)
+                # print('time', timerun)
                 if timerun > 10:
                     frame_count = self.countPositive + self.countNegative
                     if self.countPositive > ((frame_count/100)*20):
                         self.flag = 'Bình thường'
-                        print('Bình thường')
+                        # print('Bình thường')
                     elif self.countNegative == frame_count:
                         self.flag = 'Căng thẳng'
-                        print('Cang thang')
+                        # print('Cang thang')
                     else:
                         self.flag = 'Có khả năng căng thẳng'
-                        print('Có khả năng Cang thanh')
-                    print("countPositive", self.countPositive)
-                    print("countNegative", self.countNegative)
-                    print("frame_count", frame_count)
+                    #     print('Có khả năng Cang thanh')
+                    # print("countPositive", self.countPositive)
+                    # print("countNegative", self.countNegative)
+                    # print("frame_count", frame_count)
                 # if timerun > 300:
                     # self.countNegative = 0
                     # self.countPositive = 0
 
                 fps = 1 / (end_time - start_time)
                 total_fps += fps
-                print(f"Frame Per Second: {round(fps, 1)}FPS")
+                # print(f"Frame Per Second: {round(fps, 1)}FPS")
                 self.signal1.emit(frame)
                 self.signal2.emit(self.img_graph)
                 self.signal3.emit(self.flag)
@@ -266,7 +266,7 @@ class live_stream(QThread):
                 pass
 
     def stop(self):
-        print("stop threading", self.index)
+        # print("stop threading", self.index)
         directory = "E:\AppEmotionInterface\Image"
         os.chdir(directory)
         cv2.imwrite("test.jpg", self.img_graph)
