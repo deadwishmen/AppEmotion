@@ -17,7 +17,7 @@
 
 ## :gear: Built With
 
--Python
+- Python
 -Framework
 - Qt5
 - Tensorflow
