@@ -18,10 +18,10 @@
 ## :gear: Built With
 
 - Python
--Framework
-- Qt5
-- Tensorflow
-- OpenCV
+- Framework
+  - Qt5
+  - Tensorflow
+  - OpenCV
 
 ## 🚀 Usage
   Download file .rar in the link of Drive and open file main.exe
